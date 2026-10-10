@@ -29,6 +29,10 @@ Sign in at `/login` (Faculty tab) with `SEED_FACULTY_EMAIL` / `SEED_FACULTY_PASS
 
 ### Production
 
+**To get a shareable link, see [`DEPLOY.md`](DEPLOY.md)** (Render, Railway, or any Docker host).
+
+Without Docker:
+
 ```bash
 npm run build
 npm run db:migrate          # apply migrations to the production database

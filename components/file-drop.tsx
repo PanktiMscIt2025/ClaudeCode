@@ -58,20 +58,20 @@ export function FileDrop({
           choose(e.dataTransfer.files[0]);
         }}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 text-center",
-          dragging ? "border-brand-500 bg-brand-50" : "border-slate-300 bg-white hover:border-slate-400",
+          "flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 transition-colors text-center",
+          dragging ? "border-brand bg-brand-soft" : "border-line bg-surface hover:border-brand",
         )}
       >
         {file ? (
           <>
-            <span className="text-sm font-medium text-slate-900">{file.name}</span>
-            <span className="text-xs text-slate-500">{formatBytes(file.size)} · click to change</span>
+            <span className="text-sm font-medium text-ink">{file.name}</span>
+            <span className="text-xs text-ink-subtle">{formatBytes(file.size)} · click to change</span>
           </>
         ) : (
           <>
-            <span className="text-sm font-medium text-brand-700">Choose a file</span>
-            <span className="text-sm text-slate-600"> or drag it here</span>
-            <span className="mt-1 text-xs text-slate-500">
+            <span className="text-sm font-medium text-brand-ink">Choose a file</span>
+            <span className="text-sm text-ink-muted"> or drag it here</span>
+            <span className="mt-1 text-xs text-ink-subtle">
               {hint ?? `${accept.join(", ")} up to ${formatBytes(maxBytes)}`}
             </span>
           </>

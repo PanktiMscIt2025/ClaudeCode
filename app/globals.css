@@ -1,14 +1,153 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/bricolage-grotesque";
 
-@theme {
-  --color-brand-50: #eef4ff;
-  --color-brand-100: #dbe6fe;
-  --color-brand-500: #3b6ff5;
-  --color-brand-600: #2753e0;
-  --color-brand-700: #1f42b5;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+/* Semantic design tokens. Components use these names (bg-surface, text-ink-muted, …)
+   so light and dark themes come from one place. */
+:root {
+  --bg: #f7f6fb;
+  --surface: #ffffff;
+  --surface-muted: #f1effa;
+  --ink: #17142b;
+  --ink-muted: #545070;
+  --ink-subtle: #7d7998;
+  --line: #e4e1f0;
+  --brand: #5b3df5;
+  --brand-hover: #4a2ee0;
+  --brand-ink: #4527d8;
+  --brand-soft: #ece8ff;
+  --accent: #ff6b4a;
+  --accent-soft: #ffe9e3;
+  --mint: #12a37f;
+  --mint-soft: #dcf6ee;
+  --sun: #b7791f;
+  --sun-soft: #fdf1d8;
+  --danger: #d92d4b;
+  --danger-soft: #fde7eb;
+  --ring: #7c63ff;
+  --shadow-color: 250 40% 30%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f0d1a;
+    --surface: #181528;
+    --surface-muted: #221e36;
+    --ink: #f3f1ff;
+    --ink-muted: #b4afd0;
+    --ink-subtle: #8a85a8;
+    --line: #2e2948;
+    --brand: #8b74ff;
+    --brand-hover: #9d89ff;
+    --brand-ink: #b3a5ff;
+    --brand-soft: #2a2350;
+    --accent: #ff8a6e;
+    --accent-soft: #3a2220;
+    --mint: #3fd3a8;
+    --mint-soft: #133a30;
+    --sun: #f2c065;
+    --sun-soft: #3a2f17;
+    --danger: #ff7189;
+    --danger-soft: #3d1a22;
+    --ring: #a796ff;
+    --shadow-color: 250 60% 2%;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f0d1a;
+  --surface: #181528;
+  --surface-muted: #221e36;
+  --ink: #f3f1ff;
+  --ink-muted: #b4afd0;
+  --ink-subtle: #8a85a8;
+  --line: #2e2948;
+  --brand: #8b74ff;
+  --brand-hover: #9d89ff;
+  --brand-ink: #b3a5ff;
+  --brand-soft: #2a2350;
+  --accent: #ff8a6e;
+  --accent-soft: #3a2220;
+  --mint: #3fd3a8;
+  --mint-soft: #133a30;
+  --sun: #f2c065;
+  --sun-soft: #3a2f17;
+  --danger: #ff7189;
+  --danger-soft: #3d1a22;
+  --ring: #a796ff;
+  --shadow-color: 250 60% 2%;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-sun: var(--sun);
+  --color-sun-soft: var(--sun-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ring: var(--ring);
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Inter Variable", ui-sans-serif, sans-serif;
+
+  --shadow-soft: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 4px 16px -4px hsl(var(--shadow-color) / 0.1);
+  --shadow-lift: 0 2px 4px hsl(var(--shadow-color) / 0.06), 0 24px 48px -12px hsl(var(--shadow-color) / 0.22);
+
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-rise: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light dark;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Soft dotted texture used behind hero sections. */
+.bg-dots {
+  background-image: radial-gradient(color-mix(in oklab, var(--ink) 9%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
 }

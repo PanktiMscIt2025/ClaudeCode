@@ -16,7 +16,7 @@ export function SubmissionBadge({ status }: { status: SubmissionStatus }) {
 }
 
 export function ReviewBadge({ status }: { status: EvaluationStatus | null }) {
-  if (!status) return <span className="text-slate-400">—</span>;
+  if (!status) return <span className="text-ink-subtle">—</span>;
   return status === "APPROVED" ? <Badge tone="green">Approved</Badge> : <Badge tone="amber">Provisional</Badge>;
 }
 

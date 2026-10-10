@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/format";
+import { Logo } from "@/components/logo";
 
 export interface NavItem {
   href: string;
@@ -32,10 +33,8 @@ export function AppShell({
   const sidebar = (
     <nav className="flex h-full flex-col">
       <div className="px-5 py-5">
-        <Link href="/" className="text-lg font-bold tracking-tight text-brand-700">
-          AssignAI
-        </Link>
-        <p className="text-xs text-slate-500">{roleLabel} portal</p>
+        <Logo />
+        <p className="mt-1 pl-11 text-xs font-medium text-ink-subtle">{roleLabel} portal</p>
       </div>
       <ul className="flex-1 space-y-0.5 px-3">
         {nav.map((item) => (
@@ -44,8 +43,8 @@ export function AppShell({
               href={item.href}
               onClick={() => setOpen(false)}
               className={cn(
-                "block rounded-md px-3 py-2 text-sm font-medium",
-                isActive(item) ? "bg-brand-50 text-brand-700" : "text-slate-700 hover:bg-slate-100",
+                "block rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                isActive(item) ? "bg-brand-soft text-brand-ink" : "text-ink-muted hover:bg-surface-muted",
               )}
               aria-current={isActive(item) ? "page" : undefined}
             >
@@ -54,11 +53,11 @@ export function AppShell({
           </li>
         ))}
       </ul>
-      <div className="border-t border-slate-200 px-5 py-4">
+      <div className="border-t border-line px-5 py-4">
         <p className="truncate text-sm font-medium">{user.name}</p>
-        <p className="truncate text-xs text-slate-500">{user.sub}</p>
+        <p className="truncate text-xs text-ink-subtle">{user.sub}</p>
         {/* Phase 2: POST /api/auth/logout */}
-        <Link href="/login" className="mt-2 inline-block text-xs font-medium text-brand-700 hover:underline">
+        <Link href="/login" className="mt-2 inline-block text-xs font-medium text-brand-ink hover:underline">
           Sign out
         </Link>
       </div>
@@ -67,16 +66,16 @@ export function AppShell({
 
   return (
     <div className="min-h-screen lg:flex">
-      <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white lg:block">
+      <aside className="hidden w-60 shrink-0 border-r border-line bg-surface lg:block">
         <div className="sticky top-0 h-screen">{sidebar}</div>
       </aside>
 
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
-        <span className="font-bold text-brand-700">AssignAI</span>
+      <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 lg:hidden">
+        <Logo />
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="rounded-md px-2 py-1 text-sm ring-1 ring-slate-300"
+          className="rounded-xl px-3 py-1.5 text-sm font-medium ring-1 ring-line"
           aria-label="Open menu"
         >
           Menu
@@ -84,8 +83,8 @@ export function AppShell({
       </header>
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <button className="absolute inset-0 bg-slate-900/30" aria-label="Close menu" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-64 bg-white shadow-xl">{sidebar}</aside>
+          <button className="absolute inset-0 bg-ink/40 backdrop-blur-sm" aria-label="Close menu" onClick={() => setOpen(false)} />
+          <aside className="absolute inset-y-0 left-0 w-64 bg-surface shadow-xl">{sidebar}</aside>
         </div>
       )}
 

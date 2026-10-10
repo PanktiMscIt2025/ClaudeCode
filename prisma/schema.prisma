@@ -79,6 +79,7 @@ model Syllabus {
 model Assignment {
   id            String              @id @default(cuid())
   courseId      String
+  code          String // short prefix for version codes, e.g. "A1"
   title         String
   topics        String // JSON string[]
   difficulty    String // "EASY" | "MEDIUM" | "HARD"
@@ -86,6 +87,10 @@ model Assignment {
   totalMarks    Int                 @default(30)
   status        String              @default("DRAFT") // DRAFT | GENERATING | REVIEW | PUBLISHED
   dueAt         DateTime
+  rubric        String              @default("[]") // JSON RubricCriterion[] shared by every version (comparable marking)
+  blueprint     String              @default("{}") // JSON question plan every version follows
+  generator     String              @default("ai") // "ai" (Claude) | "offline" (built-in templates, no API key)
+  progress      Int                 @default(0) // versions generated in the current run
   error         String?
   createdAt     DateTime            @default(now())
   publishedAt   DateTime?

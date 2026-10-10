@@ -18,7 +18,7 @@ export function CourseTabs({ courseId }: { courseId: string }) {
       <nav className="inline-flex gap-1 rounded-2xl bg-surface-muted p-1" aria-label="Course sections">
         {tabs.map((t) => {
           const href = `/faculty/courses/${courseId}/${t.slug}`;
-          const active = pathname === href;
+          const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={t.slug}

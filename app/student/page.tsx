@@ -3,13 +3,15 @@ import type { ComponentType, SVGProps } from "react";
 import { Badge, ButtonLink, Card } from "@/components/ui";
 import { ProgressSteps, ScoreRing } from "@/components/visuals";
 import { ArrowRight, Book, Chart, Clock, History, Key, Upload } from "@/components/icons";
-import { demoCurrentStudent, studentView } from "@/lib/demo-data";
+import { requireUser } from "@/lib/server/auth";
+import { getStudentViews } from "@/lib/server/student-data";
 import { studentStep, studentSteps, studentStatusText } from "@/lib/student-status";
 import { cn, dueLabel, formatDate } from "@/lib/format";
 
-export default function StudentHome() {
-  const student = demoCurrentStudent;
-  const views = studentView(student.id);
+export default async function StudentHome() {
+  const user = await requireUser("STUDENT");
+  const student = { name: user.name, enrollmentNo: user.loginId };
+  const views = await getStudentViews(user.id);
   const current = views[0];
   const published = views.find((v) => v.latest?.evaluation?.status === "APPROVED");
   const due = current ? dueLabel(current.assignment.dueAt) : null;
@@ -56,11 +58,11 @@ export default function StudentHome() {
                   View submission
                 </ButtonLink>
               ) : (
-                <ButtonLink href="/student/submit">
+                <ButtonLink href={`/student/submit?sa=${current.sa.id}`}>
                   <Upload className="h-4 w-4" /> Upload ZIP
                 </ButtonLink>
               )}
-              <ButtonLink href="/student/assignment" variant={current.latest ? "primary" : "secondary"}>
+              <ButtonLink href={`/student/assignment?sa=${current.sa.id}`} variant={current.latest ? "primary" : "secondary"}>
                 Open assignment <ArrowRight className="h-4 w-4" />
               </ButtonLink>
             </div>

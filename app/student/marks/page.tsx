@@ -1,11 +1,13 @@
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { CriterionBar, ScoreRing } from "@/components/visuals";
 import { Clock } from "@/components/icons";
-import { demoCurrentStudent, studentView } from "@/lib/demo-data";
+import { requireUser } from "@/lib/server/auth";
+import { getStudentViews } from "@/lib/server/student-data";
 import { formatDate, percent } from "@/lib/format";
 
-export default function MarksPage() {
-  const views = studentView(demoCurrentStudent.id).filter((v) => v.latest);
+export default async function MarksPage() {
+  const user = await requireUser("STUDENT");
+  const views = (await getStudentViews(user.id)).filter((v) => v.latest);
 
   return (
     <div className="mx-auto max-w-3xl">

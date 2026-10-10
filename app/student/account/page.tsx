@@ -1,9 +1,10 @@
 import { Card, PageHeader } from "@/components/ui";
-import { demoCurrentStudent } from "@/lib/demo-data";
+import { requireUser } from "@/lib/server/auth";
 import { AccountPasswordForm } from "./password-form";
 
-export default function AccountPage() {
-  const s = demoCurrentStudent;
+export default async function AccountPage() {
+  const user = await requireUser("STUDENT");
+  const s = { name: user.name, enrollmentNo: user.loginId };
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <PageHeader title="Account" description="Your login details and password." />

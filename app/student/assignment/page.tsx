@@ -1,17 +1,24 @@
 import { Badge, ButtonLink, Card, EmptyState } from "@/components/ui";
 import { Calendar, Clock, File, Upload } from "@/components/icons";
-import { demoCurrentStudent, studentView } from "@/lib/demo-data";
+import { requireUser } from "@/lib/server/auth";
+import { getStudentViews } from "@/lib/server/student-data";
+import { AssignmentPicker } from "@/components/assignment-picker";
 import { dueLabel, formatDate } from "@/lib/format";
 import { DownloadInstructions } from "./download-instructions";
 
-export default function MyAssignmentPage() {
-  const view = studentView(demoCurrentStudent.id)[0];
+export default async function MyAssignmentPage({ searchParams }: { searchParams: Promise<{ sa?: string }> }) {
+  const user = await requireUser("STUDENT");
+  const views = await getStudentViews(user.id);
+  const { sa: selected } = await searchParams;
+  const view = views.find((v) => v.sa.id === selected) ?? views[0];
   if (!view) return <EmptyState title="No assignment yet">Your teacher hasn&apos;t published one for you.</EmptyState>;
 
   const { assignment, sa } = view;
   const due = dueLabel(assignment.dueAt);
 
   return (
+    <>
+    <AssignmentPicker base="/student/assignment" current={sa.id} items={views.map((v) => ({ id: v.sa.id, label: `${v.assignment.courseCode} · ${v.sa.version}` }))} />
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="min-w-0 space-y-6">
         <header>
@@ -22,6 +29,9 @@ export default function MyAssignmentPage() {
             </Badge>
           </div>
           <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tight">{assignment.title}</h1>
+          <p className="mt-1 text-sm text-ink-subtle">
+            {assignment.courseCode} · {assignment.courseName}
+          </p>
         </header>
 
         <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-soft to-accent-soft p-6 sm:p-8">
@@ -82,7 +92,7 @@ export default function MyAssignmentPage() {
           </p>
           <p className="mt-4 text-sm leading-relaxed text-ink-muted">{sa.instructions}</p>
           <div className="mt-5 space-y-2">
-            <ButtonLink href="/student/submit" className="w-full">
+            <ButtonLink href={`/student/submit?sa=${sa.id}`} className="w-full">
               <Upload className="h-4 w-4" /> Upload ZIP
             </ButtonLink>
             <DownloadInstructions assignment={assignment} sa={sa} />
@@ -94,5 +104,6 @@ export default function MyAssignmentPage() {
         </div>
       </aside>
     </div>
+    </>
   );
 }

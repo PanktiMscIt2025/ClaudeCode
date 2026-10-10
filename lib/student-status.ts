@@ -14,7 +14,6 @@ export function studentStep(latest?: Submission): number {
 export function studentStatusText(latest?: Submission): string {
   if (!latest) return "Not submitted yet";
   if (latest.evaluation?.status === "APPROVED") return "Marks published";
-  if (latest.status === "FAILED") return "Upload problem: please resubmit";
   if (latest.status === "QUEUED" || latest.status === "EVALUATING") return "Received: being checked";
   return "Submitted: waiting for teacher review";
 }

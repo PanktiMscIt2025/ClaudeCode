@@ -1,13 +1,15 @@
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
 import { File, Zip } from "@/components/icons";
-import { demoCurrentStudent, studentView } from "@/lib/demo-data";
+import { requireUser } from "@/lib/server/auth";
+import { getStudentViews } from "@/lib/server/student-data";
 import { studentStatusText } from "@/lib/student-status";
 import { formatBytes, formatDate } from "@/lib/format";
 
-export default function HistoryPage() {
-  const items = studentView(demoCurrentStudent.id).flatMap((v) =>
+export default async function HistoryPage() {
+  const user = await requireUser("STUDENT");
+  const items = (await getStudentViews(user.id)).flatMap((v) =>
     v.submissions.map((s, i) => ({ s, v, isLatest: i === 0 })),
-  );
+  ).sort((a, b) => b.s.submittedAt.localeCompare(a.s.submittedAt));
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -17,7 +19,7 @@ export default function HistoryPage() {
       ) : (
         <ol className="relative space-y-5 border-l-2 border-line pl-6 sm:pl-8">
           {items.map(({ s, v, isLatest }) => {
-            const tone = s.evaluation?.status === "APPROVED" ? "green" : s.status === "FAILED" ? "red" : "amber";
+            const tone = s.evaluation?.status === "APPROVED" ? "green" : "amber";
             return (
               <li key={s.id} className="relative">
                 <span className="absolute top-5 -left-[33px] flex h-4 w-4 items-center justify-center rounded-full bg-brand ring-4 ring-bg sm:-left-[41px]" />

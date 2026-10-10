@@ -138,7 +138,7 @@ export function StatCard({ label, value, hint, tone }: { label: string; value: R
 
 export function Table({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-2xl bg-surface shadow-soft ring-1 ring-line">
+    <div className="relative overflow-x-auto rounded-2xl bg-surface shadow-soft ring-1 ring-line">
       <table className="min-w-full divide-y divide-line text-sm">{children}</table>
     </div>
   );

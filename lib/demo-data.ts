@@ -135,7 +135,7 @@ export const demoSubmissions: Submission[] = [
 
 export const demoReviewRows: ReviewRow[] = [
   { submissionId: "sub1", enrollmentNo: "ENR001", studentName: "Rahul Patel", assignmentTitle: "Assignment 1", version: "A1-V01", status: "EVALUATED", score: 24, reviewStatus: "PROVISIONAL" },
-  { submissionId: "sub2", enrollmentNo: "ENR002", studentName: "Priya Shah", assignmentTitle: "Assignment 1", version: "A1-V02", status: "NEEDS_REVIEW", score: null, reviewStatus: null },
+  { submissionId: "sub2", enrollmentNo: "ENR002", studentName: "Priya Shah", assignmentTitle: "Assignment 1", version: "A1-V02", status: "NEEDS_REVIEW", score: 9, reviewStatus: "PROVISIONAL" },
   { submissionId: null, enrollmentNo: "ENR003", studentName: "Amit Kumar", assignmentTitle: "Assignment 1", version: "A1-V03", status: "NOT_SUBMITTED", score: null, reviewStatus: null },
 ];
 
@@ -151,3 +151,115 @@ export const demoImportPreview: ImportPreviewRow[] = [
 
 /** The logged-in demo student for student pages. */
 export const demoCurrentStudent = demoStudents[0];
+
+/* An earlier, already-graded assignment so student "Marks" has published results to show. */
+demoAssignments.unshift({
+  id: "a0",
+  courseId: "c1",
+  title: "Assignment 0: SQL Warm-up",
+  topics: ["SQL joins and subqueries"],
+  difficulty: "EASY",
+  questionCount: 2,
+  totalMarks: 30,
+  status: "PUBLISHED",
+  dueAt: "2026-09-15T18:00:00Z",
+  rubric: [
+    { criterion: "Query correctness", maxMarks: 15, description: "Results match the requirement" },
+    { criterion: "Use of joins & subqueries", maxMarks: 10, description: "Appropriate constructs chosen" },
+    { criterion: "Explanation", maxMarks: 5, description: "Each query explained briefly" },
+  ],
+});
+
+demoStudentAssignments.unshift({
+  id: "sa0",
+  assignmentId: "a0",
+  studentId: "s1",
+  version: "A0-V01",
+  scenario: "A college canteen tracks orders, menu items, and daily specials. Write queries for the canteen manager's weekly report.",
+  instructions: "Submit one ZIP containing queries.sql and a short explanation (PDF or DOCX).",
+  questions: [
+    { number: 1, marks: 18, text: "List the top 5 items by revenue each week, including items that had zero sales.", deliverable: "queries.sql" },
+    { number: 2, marks: 12, text: "Find students who ordered a daily special on every weekday of a given week.", deliverable: "queries.sql + explanation" },
+  ],
+});
+
+demoSubmissions.unshift({
+  id: "sub0",
+  studentAssignmentId: "sa0",
+  fileName: "ENR001_warmup.zip",
+  sizeBytes: 38_204,
+  submittedAt: "2026-09-14T09:41:00Z",
+  status: "EVALUATED",
+  files: ["queries.sql", "explanation.pdf"],
+  evaluation: {
+    aiTotal: 25,
+    finalTotal: 26,
+    status: "APPROVED",
+    feedback:
+      "Well-structured queries. The LEFT JOIN with COALESCE for zero-sale items is exactly right. " +
+      "For Q2, relational division via NOT EXISTS is elegant; mention why it is preferred over COUNT-based checks.",
+    evidence: ["queries.sql line 3: LEFT JOIN menu_items with COALESCE(SUM(...), 0)", "queries.sql line 21: double NOT EXISTS"],
+    criteria: [
+      { criterion: "Query correctness", maxMarks: 15, aiMarks: 14, finalMarks: 14, comment: "Both queries correct" },
+      { criterion: "Use of joins & subqueries", maxMarks: 10, aiMarks: 8, finalMarks: 9, comment: "Strong use of NOT EXISTS" },
+      { criterion: "Explanation", maxMarks: 5, aiMarks: 3, finalMarks: 3, comment: "Brief; could justify approach" },
+    ],
+  },
+});
+
+export interface StudentAssignmentView {
+  assignment: Assignment;
+  sa: StudentAssignment;
+  submissions: Submission[];
+  latest?: Submission;
+}
+
+/** Everything a student may see: only their own assignment versions and submissions. */
+export function studentView(studentId: string): StudentAssignmentView[] {
+  return demoStudentAssignments
+    .filter((sa) => sa.studentId === studentId)
+    .map((sa) => {
+      const assignment = demoAssignments.find((a) => a.id === sa.assignmentId)!;
+      const submissions = demoSubmissions
+        .filter((s) => s.studentAssignmentId === sa.id)
+        .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+      return { assignment, sa, submissions, latest: submissions[0] };
+    })
+    .sort((a, b) => b.assignment.dueAt.localeCompare(a.assignment.dueAt));
+}
+
+/** Faculty view of one submission with its student and assignment version. */
+export function submissionDetail(submissionId: string) {
+  const submission = demoSubmissions.find((s) => s.id === submissionId);
+  if (!submission) return null;
+  const sa = demoStudentAssignments.find((x) => x.id === submission.studentAssignmentId)!;
+  const assignment = demoAssignments.find((a) => a.id === sa.assignmentId)!;
+  const student = demoStudents.find((s) => s.id === sa.studentId)!;
+  return { submission, sa, assignment, student };
+}
+
+/* A submission the pipeline couldn't evaluate automatically. */
+demoSubmissions.push({
+  id: "sub2",
+  studentAssignmentId: "sa2",
+  fileName: "ENR002_assign1.zip",
+  sizeBytes: 1_904_331,
+  submittedAt: "2026-10-09T21:05:00Z",
+  status: "NEEDS_REVIEW",
+  files: ["report_scan.pdf", "schema.sql"],
+  rejectedFiles: ["tools/setup.exe"],
+  reviewReason: "report_scan.pdf contains scanned images with no extractable text, so the ER model and normalization answers could not be read automatically.",
+  evaluation: {
+    aiTotal: 9,
+    finalTotal: 9,
+    status: "PROVISIONAL",
+    feedback: "Only schema.sql could be evaluated. Report content was unreadable; please review the PDF manually.",
+    evidence: ["schema.sql: 6 tables with primary/foreign keys for warehouses, shipments, legs, trucks, drivers, claims"],
+    criteria: [
+      { criterion: "Schema design & ER model", maxMarks: 8, aiMarks: 5, finalMarks: 5, comment: "Schema present; ER diagram unreadable" },
+      { criterion: "SQL correctness", maxMarks: 10, aiMarks: 4, finalMarks: 4, comment: "queries.sql missing" },
+      { criterion: "Normalization & justification", maxMarks: 7, aiMarks: 0, finalMarks: 0, comment: "Could not read report" },
+      { criterion: "Documentation & clarity", maxMarks: 5, aiMarks: 0, finalMarks: 0, comment: "Could not read report" },
+    ],
+  },
+});

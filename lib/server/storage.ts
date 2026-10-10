@@ -3,7 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 // Private file storage outside public/: never served directly, only through authorized routes.
-export const storageRoot = () => path.resolve(process.env.STORAGE_DIR || "./storage");
+export const storageRoot = () => path.resolve(/* turbopackIgnore: true */ process.cwd(), process.env.STORAGE_DIR || "storage");
 
 export async function saveSubmissionZip(data: Uint8Array): Promise<string> {
   const dir = path.join(storageRoot(), "submissions");

@@ -10,7 +10,9 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:setup": "prisma migrate deploy && prisma generate && prisma db seed",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test:e2e": "playwright test",
+    "test:e2e:ai": "E2E_AI=mock playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.133.0",
@@ -29,6 +31,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "1.56.1",
     "@tailwindcss/postcss": "4.1.14",
     "@types/node": "22.18.0",
     "@types/react": "19.2.2",

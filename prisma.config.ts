@@ -1,4 +1,4 @@
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 try {
   process.loadEnvFile?.(".env");
@@ -9,5 +9,6 @@ try {
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: { path: "prisma/migrations", seed: "tsx prisma/seed.ts" },
-  datasource: { url: env("DATABASE_URL") },
+  // Same default as lib/server/db.ts, so `npm install` (prisma generate) works before .env exists.
+  datasource: { url: process.env.DATABASE_URL || "file:./prisma/dev.db" },
 });

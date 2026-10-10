@@ -144,7 +144,7 @@ export async function extractSubmission(zipPath: string): Promise<ExtractedSubmi
   try {
     const scan = await walk(zipPath, async (zf, entry) => {
       const data = await readEntry(zf, entry, Math.min(entry.uncompressedSize, LIMITS.maxFileBytes));
-      const file = path.join(tmp, `${written.length}.${ext(entry.fileName) || "dat"}`); // flat, server-chosen name
+      const file = path.join(/* turbopackIgnore: true */ tmp, `${written.length}.${ext(entry.fileName) || "dat"}`); // flat, server-chosen name
       await writeFile(file, data, { mode: 0o600 });
       written.push({ name: entry.fileName, file });
     });

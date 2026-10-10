@@ -107,3 +107,82 @@ export async function importErrorWorkbook(rows: { row: number; name: string; enr
   styleHeader(ws);
   return toBuffer(wb);
 }
+
+export interface MarksRow {
+  name: string;
+  enrollmentNo: string;
+  version: string;
+  submittedAt: Date | null;
+  criteria: Map<string, number>; // criterion → final marks
+  total: number | null;
+  status: string;
+  approvedTotal: number | null;
+  feedback: string;
+}
+
+/** Formatted marks sheet: header styling, filters, frozen header, numeric score cells, summary sheet. */
+export async function marksWorkbook(info: { courseLabel: string; title: string; code: string; totalMarks: number; rubric: { criterion: string; maxMarks: number }[] }, rows: MarksRow[]) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "AssignAI";
+  wb.created = new Date();
+  const ws = wb.addWorksheet("Marks");
+  const crit = info.rubric.map((r, i) => ({ header: `${r.criterion} (/${r.maxMarks})`, key: `c${i}`, width: Math.min(Math.max(r.criterion.length + 8, 14), 32) }));
+  ws.columns = [
+    { header: "Sr. No.", key: "sr", width: 8 },
+    { header: "Student Name", key: "name", width: 28 },
+    { header: "Enrollment Number", key: "enrollmentNo", width: 20 },
+    { header: "Assignment Title", key: "title", width: 36 },
+    { header: "Assignment Version", key: "version", width: 18 },
+    { header: "Submission Date", key: "submittedAt", width: 20 },
+    ...crit,
+    { header: `Total (/${info.totalMarks})`, key: "total", width: 13 },
+    { header: "Percentage", key: "pct", width: 12 },
+    { header: "Evaluation Status", key: "status", width: 20 },
+    { header: `Faculty-Approved Marks (/${info.totalMarks})`, key: "approved", width: 18 },
+    { header: "Feedback Summary", key: "feedback", width: 60 },
+  ];
+  rows.forEach((r, i) => {
+    const row: Record<string, unknown> = {
+      sr: i + 1,
+      name: r.name,
+      enrollmentNo: r.enrollmentNo,
+      title: info.title,
+      version: r.version,
+      submittedAt: r.submittedAt ?? "Not submitted",
+      total: r.total,
+      pct: r.total === null ? null : r.total / info.totalMarks,
+      status: r.status,
+      approved: r.approvedTotal,
+      feedback: r.feedback.length > 300 ? r.feedback.slice(0, 297) + "…" : r.feedback,
+    };
+    info.rubric.forEach((c, j) => (row[`c${j}`] = r.criteria.get(c.criterion) ?? null));
+    ws.addRow(row);
+  });
+  ws.getColumn("submittedAt").numFmt = "dd-mmm-yyyy hh:mm";
+  ws.getColumn("pct").numFmt = "0.0%";
+  for (const key of ["total", "approved", ...crit.map((c) => c.key)]) {
+    ws.getColumn(key).numFmt = "0.0";
+    ws.getColumn(key).alignment = { horizontal: "right" };
+  }
+  ws.getColumn("feedback").alignment = { wrapText: true, vertical: "top" };
+  styleHeader(ws);
+  ws.getRow(1).alignment = { vertical: "middle", wrapText: true };
+  ws.getRow(1).height = 34;
+
+  const scored = rows.filter((r) => r.approvedTotal !== null).map((r) => r.approvedTotal!);
+  const s = wb.addWorksheet("Summary");
+  s.columns = [{ width: 32 }, { width: 50 }];
+  [
+    ["Course", info.courseLabel],
+    ["Assignment", `${info.code} · ${info.title}`],
+    ["Exported", new Date()],
+    ["Students", rows.length],
+    ["Submitted", rows.filter((r) => r.submittedAt).length],
+    ["Marks approved", scored.length],
+    [`Average approved marks (/${info.totalMarks})`, scored.length ? Math.round((scored.reduce((a, b) => a + b, 0) / scored.length) * 10) / 10 : "—"],
+    ["Note", "Totals marked “Provisional” are AI suggestions that faculty have not yet approved."],
+  ].forEach((r) => s.addRow(r));
+  s.getColumn(1).font = { bold: true };
+  s.getCell("B3").numFmt = "dd-mmm-yyyy hh:mm";
+  return toBuffer(wb);
+}

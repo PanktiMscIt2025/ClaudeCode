@@ -1,46 +1,45 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { Check, Key } from "@/components/icons";
 import { cn } from "@/lib/format";
-
-export const passwordRules = [
-  { id: "len", label: "At least 8 characters", test: (p: string) => p.length >= 8 },
-  { id: "case", label: "Upper and lower case letters", test: (p: string) => /[a-z]/.test(p) && /[A-Z]/.test(p) },
-  { id: "num", label: "At least one number", test: (p: string) => /\d/.test(p) },
-];
+import { passwordRules } from "@/lib/password-rules";
+import { changePasswordAction } from "@/lib/server/auth-actions";
 
 export function ChangePasswordForm({ firstLogin = false, onDone }: { firstLogin?: boolean; onDone?: () => void }) {
-  const router = useRouter();
-  const [current, setCurrent] = useState("");
+  const [state, formAction, pending] = useActionState(changePasswordAction, undefined);
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [clientError, setClientError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   const passed = passwordRules.filter((r) => r.test(next)).length;
   const strength = next ? passed / passwordRules.length : 0;
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (!current) return setError(firstLogin ? "Enter the temporary password from your teacher." : "Enter your current password.");
-    if (passed < passwordRules.length) return setError("Your new password doesn't meet all the requirements yet.");
-    if (next !== confirm) return setError("The two new passwords don't match.");
-    if (next === current) return setError("Choose a password different from your current one.");
-    setPending(true);
-    // Phase 2: POST /api/auth/change-password
-    await new Promise((r) => setTimeout(r, 400));
-    if (onDone) {
-      onDone();
-      setPending(false);
-      setCurrent("");
+  useEffect(() => {
+    if (state?.ok) {
+      formRef.current?.reset();
       setNext("");
       setConfirm("");
-    } else router.push("/student");
+      onDoneRef.current?.();
+    }
+  }, [state]);
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    // Instant feedback in the browser; the server enforces the same rules.
+    if (passed < passwordRules.length) {
+      e.preventDefault();
+      setClientError("Your new password doesn't meet all the requirements yet.");
+    } else if (next !== confirm) {
+      e.preventDefault();
+      setClientError("The two new passwords don't match.");
+    } else setClientError(null);
   }
+
+  const error = clientError ?? state?.error;
 
   return (
     <div className={cn(firstLogin && "animate-rise")}>
@@ -56,13 +55,22 @@ export function ChangePasswordForm({ firstLogin = false, onDone }: { firstLogin?
         </>
       )}
 
-      <form onSubmit={onSubmit} className={cn("space-y-5", firstLogin && "mt-8")} noValidate>
+      <form ref={formRef} action={formAction} onSubmit={onSubmit} className={cn("space-y-5", firstLogin && "mt-8")}>
         <Field id="current" label={firstLogin ? "Temporary password" : "Current password"}>
-          <Input id="current" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+          <Input id="current" name="current" type="password" autoComplete="current-password" required />
         </Field>
 
         <Field id="next" label="New password">
-          <Input id="next" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} aria-describedby="pw-rules" />
+          <Input
+            id="next"
+            name="next"
+            type="password"
+            autoComplete="new-password"
+            value={next}
+            onChange={(e) => setNext(e.target.value)}
+            aria-describedby="pw-rules"
+            required
+          />
           <div className="mt-2 flex gap-1.5" aria-hidden="true">
             {[0, 1, 2].map((i) => (
               <span
@@ -90,7 +98,7 @@ export function ChangePasswordForm({ firstLogin = false, onDone }: { firstLogin?
         </Field>
 
         <Field id="confirm" label="Confirm new password">
-          <Input id="confirm" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          <Input id="confirm" name="confirm" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
         </Field>
 
         {error && (

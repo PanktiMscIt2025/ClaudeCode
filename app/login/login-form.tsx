@@ -1,35 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { Button, Field, Input, Alert } from "@/components/ui";
 import { Segmented } from "@/components/segmented";
 import { ArrowRight, Eye } from "@/components/icons";
+import { loginAction } from "@/lib/server/auth-actions";
 
 type Role = "student" | "faculty";
 
 export function LoginForm({ initialRole }: { initialRole: Role }) {
-  const router = useRouter();
+  const [state, formAction, pending] = useActionState(loginAction, undefined);
   const [role, setRole] = useState<Role>(initialRole);
   const [loginId, setLoginId] = useState("");
-  const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (!loginId.trim() || !password) {
-      setError(role === "student" ? "Enter your enrollment number and password." : "Enter your email and password.");
-      return;
-    }
-    setPending(true);
-    // Phase 2: POST /api/auth/login → { redirect }. Until then, route into the preview.
-    await new Promise((r) => setTimeout(r, 400));
-    router.push(role === "faculty" ? "/faculty" : "/change-password");
-  }
 
   return (
     <div className="animate-rise">
@@ -40,10 +24,7 @@ export function LoginForm({ initialRole }: { initialRole: Role }) {
         <Segmented
           label="I am signing in as"
           value={role}
-          onChange={(r) => {
-            setRole(r);
-            setError(null);
-          }}
+          onChange={setRole}
           options={[
             { value: "student", label: "Student" },
             { value: "faculty", label: "Faculty" },
@@ -51,7 +32,7 @@ export function LoginForm({ initialRole }: { initialRole: Role }) {
         />
       </div>
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-5" noValidate>
+      <form action={formAction} className="mt-6 space-y-5">
         <Field
           id="loginId"
           label={role === "student" ? "Enrollment number" : "Email"}
@@ -60,6 +41,7 @@ export function LoginForm({ initialRole }: { initialRole: Role }) {
           <Input
             id="loginId"
             name="loginId"
+            required
             autoComplete="username"
             autoCapitalize={role === "student" ? "characters" : "none"}
             inputMode={role === "faculty" ? "email" : "text"}
@@ -75,10 +57,9 @@ export function LoginForm({ initialRole }: { initialRole: Role }) {
             <Input
               id="password"
               name="password"
+              required
               type={show ? "text" : "password"}
               autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               className="h-12 pr-12 text-base"
             />
             <button
@@ -93,9 +74,9 @@ export function LoginForm({ initialRole }: { initialRole: Role }) {
           </div>
         </Field>
 
-        {error && (
+        {state?.error && (
           <Alert tone="red">
-            <span role="alert">{error}</span>
+            <span role="alert">{state.error}</span>
           </Alert>
         )}
 

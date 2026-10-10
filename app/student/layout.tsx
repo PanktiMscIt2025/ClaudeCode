@@ -1,7 +1,7 @@
 import { StudentShell } from "@/components/portal-shells";
-import { demoCurrentStudent } from "@/lib/demo-data";
+import { requireUser } from "@/lib/server/auth";
 
-// Phase 2: read the session server-side, redirect non-students, and force /change-password when required.
-export default function StudentLayout({ children }: { children: React.ReactNode }) {
-  return <StudentShell user={{ name: demoCurrentStudent.name, sub: demoCurrentStudent.enrollmentNo }}>{children}</StudentShell>;
+export default async function StudentLayout({ children }: { children: React.ReactNode }) {
+  const user = await requireUser("STUDENT");
+  return <StudentShell user={{ name: user.name, sub: user.loginId }}>{children}</StudentShell>;
 }

@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { demoCourses } from "@/lib/demo-data";
+import { requireUser } from "@/lib/server/auth";
+import { requireOwnedCourse } from "@/lib/server/courses";
 import { CourseTabs } from "./course-tabs";
 
 export default async function CourseLayout({ children, params }: { children: React.ReactNode; params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const course = demoCourses.find((c) => c.id === id);
-  if (!course) notFound();
+  const user = await requireUser("FACULTY");
+  const course = await requireOwnedCourse((await params).id, user.id);
 
   return (
     <div>

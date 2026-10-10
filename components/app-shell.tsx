@@ -7,6 +7,7 @@ import { cn } from "@/lib/format";
 import { Logo } from "@/components/logo";
 import { Logout, X } from "@/components/icons";
 import { ToastProvider } from "@/components/toast";
+import { logoutAction } from "@/lib/server/auth-actions";
 
 export interface NavItem {
   href: string;
@@ -81,10 +82,11 @@ export function AppShell({
           <p className="truncate text-sm font-semibold">{user.name}</p>
           <p className="truncate text-xs text-ink-subtle">{user.sub}</p>
         </div>
-        {/* Phase 2: POST /api/auth/logout */}
-        <Link href="/login" className="rounded-lg p-1.5 text-ink-subtle hover:bg-surface hover:text-ink" aria-label="Sign out" title="Sign out">
-          <Logout className="h-5 w-5" />
-        </Link>
+        <form action={logoutAction}>
+          <button type="submit" className="rounded-lg p-1.5 text-ink-subtle hover:bg-surface hover:text-ink" aria-label="Sign out" title="Sign out">
+            <Logout className="h-5 w-5" />
+          </button>
+        </form>
       </div>
     </nav>
   );
@@ -99,9 +101,11 @@ export function AppShell({
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-line/70 bg-bg/80 px-4 backdrop-blur-lg lg:hidden">
           <Logo />
           {bottomNav ? (
-            <Link href="/login" className="rounded-xl p-2 text-ink-subtle ring-1 ring-line" aria-label="Sign out">
-              <Logout className="h-5 w-5" />
-            </Link>
+            <form action={logoutAction}>
+              <button type="submit" className="rounded-xl p-2 text-ink-subtle ring-1 ring-line" aria-label="Sign out">
+                <Logout className="h-5 w-5" />
+              </button>
+            </form>
           ) : (
             <button
               type="button"

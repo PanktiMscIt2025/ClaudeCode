@@ -1,7 +1,7 @@
 import { FacultyShell } from "@/components/portal-shells";
-import { demoFaculty } from "@/lib/demo-data";
+import { requireUser } from "@/lib/server/auth";
 
-// Phase 2: read the session server-side and redirect anyone who isn't faculty.
-export default function FacultyLayout({ children }: { children: React.ReactNode }) {
-  return <FacultyShell user={{ name: demoFaculty.name, sub: demoFaculty.loginId }}>{children}</FacultyShell>;
+export default async function FacultyLayout({ children }: { children: React.ReactNode }) {
+  const user = await requireUser("FACULTY");
+  return <FacultyShell user={{ name: user.name, sub: user.loginId }}>{children}</FacultyShell>;
 }

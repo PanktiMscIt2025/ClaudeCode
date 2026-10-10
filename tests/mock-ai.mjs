@@ -1,7 +1,8 @@
-// Minimal stand-in for the Anthropic Messages API, used by `npm run test:e2e:ai`.
-// It checks that requests have the shape lib/server/ai.ts must send (API key, refusal-fallback beta,
-// structured-output schema) and answers with schema-valid JSON, so the AI code path is tested
-// end-to-end without a real key or network access.
+// Minimal stand-in for the Anthropic Messages API and the Gemini generateContent API, used by
+// `npm run test:e2e:ai` and `npm run test:e2e:gemini`. It checks that requests have the shape
+// lib/server/ai.ts must send (API key, structured-output schema, and for Claude the refusal-fallback
+// beta) and answers with schema-valid JSON, so each AI code path is tested end-to-end without a real
+// key or network access.
 import http from "node:http";
 
 export const calls = [];
@@ -65,8 +66,38 @@ export function startMock(port) {
     req.on("data", (c) => (body += c));
     req.on("end", () => {
       try {
-        if (req.method !== "POST" || !req.url.startsWith("/v1/messages")) throw new Error(`Unexpected ${req.method} ${req.url}`);
+        if (req.method !== "POST") throw new Error(`Unexpected ${req.method} ${req.url}`);
         const json = JSON.parse(body);
+        const fail = (problems) => {
+          res.writeHead(400, { "content-type": "application/json" });
+          res.end(JSON.stringify({ type: "error", error: { type: "invalid_request_error", code: 400, message: problems.join("; ") } }));
+        };
+
+        // Google Gemini: POST /v1beta/models/{model}:generateContent
+        const gem = /\/models\/([^/:]+):generateContent/.exec(req.url);
+        if (gem) {
+          const cfg = json.generationConfig ?? {};
+          const problems = [];
+          if (!req.headers["x-goog-api-key"]) problems.push("missing x-goog-api-key");
+          if (cfg.responseMimeType !== "application/json") problems.push("responseMimeType must be application/json");
+          if (!cfg.responseJsonSchema?.properties) problems.push("missing responseJsonSchema");
+          if (!json.systemInstruction) problems.push("missing systemInstruction");
+          if (problems.length) return fail(problems);
+          const prompt = (json.contents ?? []).flatMap((c) => c.parts ?? []).map((p) => p.text ?? "").join("\n");
+          const out = reply(cfg.responseJsonSchema, prompt);
+          calls.push({ model: gem[1], kind: Object.keys(cfg.responseJsonSchema.properties)[0], provider: "gemini" });
+          res.writeHead(200, { "content-type": "application/json" });
+          return res.end(
+            JSON.stringify({
+              candidates: [{ content: { role: "model", parts: [{ text: JSON.stringify(out) }] }, finishReason: "STOP", index: 0 }],
+              usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 200, totalTokenCount: 300 },
+              modelVersion: gem[1],
+            }),
+          );
+        }
+
+        // Anthropic Messages API
+        if (!req.url.startsWith("/v1/messages")) throw new Error(`Unexpected ${req.method} ${req.url}`);
         const problems = [];
         if (!req.headers["x-api-key"]) problems.push("missing x-api-key");
         if (!String(req.headers["anthropic-beta"] ?? "").includes("server-side-fallback-2026-07-01")) problems.push("missing fallback beta header");
@@ -74,13 +105,10 @@ export function startMock(port) {
         if (json.output_config?.format?.type !== "json_schema") problems.push("missing structured output schema");
         if (!json.output_config?.effort) problems.push("effort not set");
         if (json.thinking?.type === "disabled") problems.push("thinking must not be disabled");
-        if (problems.length) {
-          res.writeHead(400, { "content-type": "application/json" });
-          return res.end(JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: problems.join("; ") } }));
-        }
+        if (problems.length) return fail(problems);
         const prompt = json.messages.map((m) => (typeof m.content === "string" ? m.content : JSON.stringify(m.content))).join("\n");
         const out = reply(json.output_config.format.schema, prompt);
-        calls.push({ model: json.model, kind: Object.keys(json.output_config.format.schema.properties ?? {})[0] });
+        calls.push({ model: json.model, kind: Object.keys(json.output_config.format.schema.properties ?? {})[0], provider: "anthropic" });
         res.writeHead(200, { "content-type": "application/json", "request-id": "req_mock" });
         res.end(
           JSON.stringify({

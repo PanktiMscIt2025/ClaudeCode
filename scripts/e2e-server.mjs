@@ -1,5 +1,6 @@
 // Starts an isolated AssignAI server for the Playwright acceptance test:
-// fresh SQLite DB + storage under .e2e/, seeded faculty account, optional mock Claude API (E2E_AI=mock).
+// fresh SQLite DB + storage under .e2e/, seeded faculty account, optional mock AI API
+// (E2E_AI=mock for Claude, E2E_AI=mock-gemini for Gemini).
 import { execSync, spawn } from "node:child_process";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
@@ -19,15 +20,22 @@ const env = {
   SEED_FACULTY_PASSWORD: "ChangeMe-2026",
   COOKIE_SECURE: "false",
   ANTHROPIC_API_KEY: "",
+  GEMINI_API_KEY: "",
+  AI_PROVIDER: "",
   NEXT_TELEMETRY_DISABLED: "1",
 };
 
-if (process.env.E2E_AI === "mock") {
-  const { startMock } = await import("../tests/mock-anthropic.mjs");
+if (process.env.E2E_AI === "mock" || process.env.E2E_AI === "mock-gemini") {
+  const { startMock } = await import("../tests/mock-ai.mjs");
   await startMock(4010);
-  env.ANTHROPIC_API_KEY = "test-key";
-  env.ANTHROPIC_BASE_URL = "http://127.0.0.1:4010";
-  console.log("[e2e] mock Anthropic API on :4010");
+  if (process.env.E2E_AI === "mock") {
+    env.ANTHROPIC_API_KEY = "test-key";
+    env.ANTHROPIC_BASE_URL = "http://127.0.0.1:4010";
+  } else {
+    env.GEMINI_API_KEY = "test-key";
+    env.GEMINI_BASE_URL = "http://127.0.0.1:4010";
+  }
+  console.log(`[e2e] mock AI API (${process.env.E2E_AI}) on :4010`);
 }
 
 execSync("npx prisma migrate deploy", { cwd: root, env, stdio: "inherit" });

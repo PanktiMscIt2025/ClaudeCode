@@ -1,12 +1,12 @@
 // End-to-end acceptance test: the complete workflow from the project requirements.
-// Run with `npm run test:e2e` (offline generator/evaluator) or `npm run test:e2e:ai` (mock Claude API).
+// Run with `npm run test:e2e` (offline), `npm run test:e2e:ai` (mock Claude API) or `npm run test:e2e:gemini` (mock Gemini API).
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import ExcelJS from "exceljs";
 import path from "node:path";
 
 const fixtures = path.join(process.cwd(), "tests", "fixtures");
 const fx = (f: string) => path.join(fixtures, f);
-const aiMode = process.env.E2E_AI === "mock";
+const aiMode = process.env.E2E_AI === "mock" || process.env.E2E_AI === "mock-gemini";
 
 type Cred = { name: string; id: string; pw: string };
 

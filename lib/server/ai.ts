@@ -1,37 +1,56 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { ApiError as GeminiApiError, FinishReason, GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 
-// All Claude calls live here, server-side only. The API key never reaches the browser.
-// Without ANTHROPIC_API_KEY the app uses the offline generator/evaluator instead.
+// All AI calls live here, server-side only. API keys never reach the browser.
+// Provider: Anthropic Claude (ANTHROPIC_API_KEY) or Google Gemini (GEMINI_API_KEY).
+// With neither key the app uses the offline generator/evaluator instead.
 
-export const aiEnabled = () => Boolean(process.env.ANTHROPIC_API_KEY);
-const MODEL = () => process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+export type AiProvider = "anthropic" | "gemini";
 
-let client: Anthropic | null = null;
-function getClient() {
-  client ??= new Anthropic({ maxRetries: 3 });
-  return client;
+/** AI_PROVIDER picks explicitly; otherwise whichever key is set (Anthropic first if both are). */
+export function aiProvider(): AiProvider | null {
+  const forced = process.env.AI_PROVIDER?.trim().toLowerCase();
+  if (forced === "anthropic" || forced === "claude") return process.env.ANTHROPIC_API_KEY ? "anthropic" : null;
+  if (forced === "gemini" || forced === "google") return process.env.GEMINI_API_KEY ? "gemini" : null;
+  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
+  if (process.env.GEMINI_API_KEY) return "gemini";
+  return null;
 }
+
+export const aiEnabled = () => aiProvider() !== null;
 
 export class AiError extends Error {}
 
-/**
- * One structured-output request. Uses server-side refusal fallbacks so a classifier decline
- * is retried on Anthropic's recommended fallback model instead of failing the job.
- */
-async function structured<T extends z.ZodType>(opts: {
+interface StructuredOpts<T extends z.ZodType> {
   schema: T;
   system: string;
   user: string;
   effort: "low" | "medium" | "high";
   maxTokens?: number;
-}): Promise<z.infer<T>> {
+}
+
+/** One structured-output request to the configured provider, validated against the Zod schema. */
+function structured<T extends z.ZodType>(opts: StructuredOpts<T>): Promise<z.infer<T>> {
+  return aiProvider() === "gemini" ? geminiStructured(opts) : anthropicStructured(opts);
+}
+
+/* ───────────── Anthropic Claude ───────────── */
+
+let anthropic: Anthropic | null = null;
+
+/**
+ * Uses server-side refusal fallbacks so a classifier decline is retried on Anthropic's
+ * recommended fallback model instead of failing the job.
+ */
+async function anthropicStructured<T extends z.ZodType>(opts: StructuredOpts<T>): Promise<z.infer<T>> {
+  anthropic ??= new Anthropic({ maxRetries: 3 });
   let response;
   try {
-    response = await getClient().beta.messages.parse({
-      model: MODEL(),
+    response = await anthropic.beta.messages.parse({
+      model: process.env.ANTHROPIC_MODEL || "claude-opus-5-5",
       max_tokens: opts.maxTokens ?? 16000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
@@ -49,6 +68,63 @@ async function structured<T extends z.ZodType>(opts: {
   if (response.stop_reason === "max_tokens") throw new AiError("The AI response was cut off. Try fewer questions per assignment.");
   if (!response.parsed_output) throw new AiError("The AI returned an unexpected format.");
   return response.parsed_output as z.infer<T>;
+}
+
+/* ───────────── Google Gemini ───────────── */
+
+let gemini: GoogleGenAI | null = null;
+
+/** JSON-schema structured output; the reply is parsed and validated with the same Zod schema. */
+async function geminiStructured<T extends z.ZodType>(opts: StructuredOpts<T>): Promise<z.infer<T>> {
+  gemini ??= new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    ...(process.env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: process.env.GEMINI_BASE_URL } } : {}),
+  });
+  const { $schema: _ignored, ...jsonSchema } = z.toJSONSchema(opts.schema) as Record<string, unknown>;
+  void _ignored;
+
+  let response;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      response = await gemini.models.generateContent({
+        model: process.env.GEMINI_MODEL || "gemini-flash-latest",
+        contents: opts.user,
+        config: {
+          systemInstruction: opts.system,
+          responseMimeType: "application/json",
+          responseJsonSchema: jsonSchema,
+          // Thinking models count reasoning toward this limit, so leave generous headroom.
+          maxOutputTokens: Math.max(opts.maxTokens ?? 16000, 32000),
+        },
+      });
+      break;
+    } catch (e) {
+      if (!(e instanceof GeminiApiError)) throw e;
+      if ((e.status === 429 || e.status >= 500) && attempt < 3) {
+        await new Promise((r) => setTimeout(r, 2000 * attempt));
+        continue;
+      }
+      if (e.status === 400 && /api key/i.test(e.message)) throw new AiError("The Gemini API key is invalid. Check GEMINI_API_KEY.");
+      if (e.status === 401 || e.status === 403) throw new AiError("The Gemini API key is invalid or lacks access. Check GEMINI_API_KEY.");
+      if (e.status === 429) throw new AiError("The AI service is rate-limited. The job will retry shortly.");
+      throw new AiError(`AI request failed (${e.status}).`);
+    }
+  }
+
+  if (response.promptFeedback?.blockReason) throw new AiError("The AI declined this request. Try different topics or wording.");
+  const finish = response.candidates?.[0]?.finishReason;
+  if (finish === FinishReason.MAX_TOKENS) throw new AiError("The AI response was cut off. Try fewer questions per assignment.");
+  if (finish && finish !== FinishReason.STOP) throw new AiError("The AI declined this request. Try different topics or wording.");
+
+  let data: unknown;
+  try {
+    data = JSON.parse(response.text ?? "");
+  } catch {
+    throw new AiError("The AI returned an unexpected format.");
+  }
+  const parsed = opts.schema.safeParse(data);
+  if (!parsed.success) throw new AiError("The AI returned an unexpected format.");
+  return parsed.data as z.infer<T>;
 }
 
 /* ───────────── Syllabus ───────────── */

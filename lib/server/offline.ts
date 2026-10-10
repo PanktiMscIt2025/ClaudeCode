@@ -1,4 +1,4 @@
-// Offline fallbacks used when ANTHROPIC_API_KEY is not set: template-based syllabus parsing,
+// Offline fallbacks used when no AI key (ANTHROPIC_API_KEY or GEMINI_API_KEY) is set: template-based syllabus parsing,
 // scenario generation, and a rough evaluator. Everything they produce is labelled as offline in
 // the UI, and offline evaluations are always flagged for faculty review.
 import { createHash } from "node:crypto";
@@ -163,7 +163,7 @@ export function offlineEvaluate(input: {
   submissionText: string;
 }): AiEvaluation {
   const text = input.submissionText.trim();
-  const reviewReason = "Marked by the offline estimator (no Anthropic API key configured). Please review the marks.";
+  const reviewReason = "Marked by the offline estimator (no AI API key configured). Please review the marks.";
   if (text.length < 40) {
     return {
       readable: false,

@@ -10,12 +10,12 @@ One Next.js (TypeScript) app runs on one server. There are no microservices.
 | App (UI + API) | Next.js 16 App Router, TypeScript | Server actions for forms; route handlers for uploads and downloads |
 | UI | Tailwind CSS 4, in-house components (`components/ui`) | Semantic color tokens, light/dark, self-hosted fonts |
 | DB | Prisma 7 + SQLite (better-sqlite3 adapter) | Switch the provider to PostgreSQL for concurrent deployments |
-| AI | Anthropic Claude API (`@anthropic-ai/sdk`), server-only | Structured outputs (Zod), explicit effort, refusal fallbacks; offline fallback without a key |
+| AI | Anthropic Claude (`@anthropic-ai/sdk`) or Google Gemini (`@google/genai`), server-only | Same Zod schemas for both; structured JSON output, validated; offline fallback without a key |
 | Excel | ExcelJS | Import roster; export credentials, error report, marks |
 | Files | `unpdf` (PDF), `mammoth` (DOCX), `yauzl` (ZIP, with limits) | |
 | Auth | scrypt hashes (Node built-in), hashed session tokens in httpOnly cookies | Role guards in `lib/server/auth.ts` |
 | Jobs | DB-backed `Job` table + one in-process worker | Retries, backoff, crash recovery |
-| Tests | Playwright acceptance test + mock Claude API | `npm run test:e2e`, `npm run test:e2e:ai` |
+| Tests | Playwright acceptance test + mock Claude/Gemini APIs | `npm run test:e2e`, `test:e2e:ai`, `test:e2e:gemini` |
 
 ## 2. Phases
 

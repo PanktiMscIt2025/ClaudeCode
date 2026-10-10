@@ -3,7 +3,7 @@
 A lightweight AI-assisted assignment management web app for college faculty and students.
 
 - Faculty import a class list from Excel, and student logins are created automatically with one-time temporary passwords.
-- Faculty upload a syllabus, and Claude writes a unique scenario-based assignment for every student, with a shared rubric and model solutions.
+- Faculty upload a syllabus, and the AI (Anthropic Claude or Google Gemini) writes a unique scenario-based assignment for every student, with a shared rubric and model solutions.
 - Students sign in with their enrollment number, read their own scenario, and upload one ZIP file.
 - Each ZIP is extracted safely and evaluated against the student's exact version. Marks out of 30 stay provisional until faculty approve them.
 - Faculty export a formatted marks workbook (.xlsx).
@@ -14,7 +14,7 @@ One Next.js app runs on one server, with SQLite by default. There are no microse
 
 - Node.js 20.9+ (developed on Node 22)
 - npm
-- An [Anthropic API key](https://console.anthropic.com/) for AI generation and evaluation. This is optional: without it the app uses a built-in offline generator and estimator, and labels everything it produces as offline.
+- An AI key for generation and evaluation: either an [Anthropic API key](https://console.anthropic.com/) or a [Google Gemini API key](https://aistudio.google.com/apikey). This is optional: without one the app uses a built-in offline generator and estimator, and labels everything it produces as offline.
 
 ## Setup
 
@@ -53,6 +53,7 @@ Run a single instance. The login rate limiter and the background job worker are 
 | `npm run db:seed` | Create the faculty account from `.env` (safe to re-run) |
 | `npm run test:e2e` | Full acceptance test with the offline generator (needs Playwright's Chromium: `npx playwright install chromium`) |
 | `npm run test:e2e:ai` | The same test against a local mock of the Claude API, which checks the request format and the AI code path |
+| `npm run test:e2e:gemini` | The same test against a local mock of the Gemini API |
 
 The acceptance test starts its own server on port 3100, with a throwaway database and storage in `.e2e/`. Stop any running `npm run dev` first.
 
@@ -61,8 +62,11 @@ The acceptance test starts its own server on port 3100, with a throwaway databas
 | Variable | Default | Purpose |
 |---|---|---|
 | `DATABASE_URL` | `file:./prisma/dev.db` | SQLite file. See *PostgreSQL* below for concurrent deployments. |
-| `ANTHROPIC_API_KEY` | empty | Enables Claude. Server-side only, never sent to the browser. |
-| `ANTHROPIC_MODEL` | `claude-opus-5-5` | Model used for extraction, generation, and evaluation |
+| `ANTHROPIC_API_KEY` | empty | Use Anthropic Claude for AI. Server-side only, never sent to the browser. |
+| `ANTHROPIC_MODEL` | `claude-opus-5-5` | Claude model |
+| `GEMINI_API_KEY` | empty | Use Google Gemini for AI instead. Server-side only. |
+| `GEMINI_MODEL` | `gemini-flash-latest` | Gemini model (the default always points to the newest Flash model) |
+| `AI_PROVIDER` | automatic | `anthropic` or `gemini`, only needed if both keys are set (otherwise Claude is used) |
 | `SEED_FACULTY_EMAIL` / `_NAME` / `_PASSWORD` | see `.env.example` | First faculty account |
 | `STORAGE_DIR` | `./storage` | Private storage for uploaded ZIPs (outside `public/`) |
 | `MAX_ZIP_MB` / `MAX_EXCEL_MB` / `MAX_SYLLABUS_MB` | 20 / 5 / 10 | Upload limits |
@@ -106,7 +110,7 @@ Old `.xls` files must be re-saved as `.xlsx`. The only `.xls` reader available (
 - Login rate limiting: 5 failures per account and IP, and 30 per IP, in 15 minutes. Uploads are rate-limited too.
 - Inputs are validated with zod. State-changing upload routes reject cross-origin requests.
 - Uploads are stored privately and downloaded only through authorized routes.
-- The Claude API key lives only in server environment variables. Prompts mark student work as data, so instructions inside a submission are ignored.
+- AI keys live only in server environment variables. No student names or IDs are sent to the AI. Prompts mark student work as data, so instructions inside a submission are ignored.
 
 ## Project layout
 
@@ -116,6 +120,6 @@ components/             UI components, app shell, icons
 lib/server/             Server-only code: db, auth, sessions, Excel, ZIP, AI, jobs, data access, actions
 lib/                    Shared types, formatting, password rules
 prisma/                 Schema, migrations, seed
-tests/                  Playwright acceptance test, fixtures, mock Claude API
+tests/                  Playwright acceptance test, fixtures, mock AI APIs (Claude and Gemini)
 scripts/e2e-server.mjs  Isolated test server for the acceptance test
 ```

@@ -9,7 +9,7 @@ Every option below gives you an `https://…` link you can share with faculty an
 ## What you need
 
 - This repository on GitHub
-- An Anthropic API key (optional, but needed for real AI generation and marking)
+- An AI key, either Anthropic (Claude) or Google Gemini (optional, but needed for real AI generation and marking)
 - A first faculty email and a strong password, used to create the first account on first start
 
 ## Option A: Render (easiest)
@@ -18,7 +18,7 @@ Every option below gives you an `https://…` link you can share with faculty an
 2. Sign in at [render.com](https://render.com) with GitHub.
 3. Click **New → Blueprint** and pick this repository. Render reads `render.yaml`, builds the `Dockerfile`, and attaches a 1 GB disk at `/data`.
 4. When asked, fill in:
-   - `ANTHROPIC_API_KEY`: your key
+   - `GEMINI_API_KEY` **or** `ANTHROPIC_API_KEY`: your AI key (leave the other one empty)
    - `SEED_FACULTY_EMAIL`: e.g. `hod@yourcollege.edu`
    - `SEED_FACULTY_PASSWORD`: a strong password (8+ characters, upper and lower case, and a number)
 5. Click **Apply**. The first build takes a few minutes. Your link is shown at the top of the service page, e.g. `https://assignai-xxxx.onrender.com`.
@@ -29,7 +29,7 @@ Persistent disks need a paid Render instance (the `starter` plan in `render.yaml
 
 1. At [railway.com](https://railway.com): **New Project → Deploy from GitHub repo**, then pick this repository. Railway detects the `Dockerfile`.
 2. In the service, open **Settings → Volumes**, add a volume, and set its mount path to `/data`.
-3. Under **Variables**, add `ANTHROPIC_API_KEY`, `SEED_FACULTY_EMAIL`, and `SEED_FACULTY_PASSWORD`.
+3. Under **Variables**, add `GEMINI_API_KEY` (or `ANTHROPIC_API_KEY`), `SEED_FACULTY_EMAIL`, and `SEED_FACULTY_PASSWORD`.
 4. Under **Settings → Networking**, click **Generate Domain** to get your link.
 
 ## Option C: Any server with Docker (college server, cloud VM)
@@ -41,7 +41,7 @@ docker build -t assignai .
 docker run -d --name assignai --restart unless-stopped \
   -p 3000:3000 \
   -v assignai-data:/data \
-  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -e GEMINI_API_KEY=your-gemini-key \
   -e SEED_FACULTY_EMAIL=hod@yourcollege.edu \
   -e SEED_FACULTY_PASSWORD='A-Strong-Pass-2026' \
   assignai
@@ -64,7 +64,7 @@ browsers only send them over HTTPS. If you must serve plain HTTP on a closed cam
 3. It starts the server on `$PORT` (default 3000).
 
 Settings you can override: `PORT`, `DATABASE_URL` (default `file:/data/assignai.db`), `STORAGE_DIR` (default
-`/data/storage`), `ANTHROPIC_MODEL`, `MAX_ZIP_MB`, `KEEP_SUBMISSION_FILES`, and `COOKIE_SECURE`.
+`/data/storage`), `GEMINI_MODEL`, `ANTHROPIC_MODEL`, `AI_PROVIDER`, `MAX_ZIP_MB`, `KEEP_SUBMISSION_FILES`, and `COOKIE_SECURE`.
 
 Back up by copying `/data` (the database file and the `storage` folder).
 Run **one** instance only: the login rate limiter and the job worker live inside the server process.

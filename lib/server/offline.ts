@@ -111,7 +111,7 @@ export function offlineVersions(spec: GenerationSpec, blueprint: Blueprint, keys
     const budget = r(4, 25);
     const days = r(10, 45);
     const scenario =
-      `${d.org} is a ${d.kind} in ${city} operating ${n} ${d.unit}. It handles about ${volume} ${d.things[0]} every week across ` +
+      `${d.org} is ${/^[aeiou]/i.test(d.kind) ? "an" : "a"} ${d.kind} in ${city} operating ${n} ${d.unit}. It handles about ${volume} ${d.things[0]} every week across ` +
       `${d.things[1]} and ${d.things[2]}. Over the last quarter, ${d.problem} rose by ${pct}%, and management has a budget of ` +
       `₹${budget} lakh and ${days} days to fix it. Data is currently kept in disconnected spreadsheets maintained separately at each ` +
       `of the ${n} ${d.unit}, so nobody has a reliable, up-to-date view. You have been hired to apply ${spec.topics.slice(0, 2).join(" and ")} ` +

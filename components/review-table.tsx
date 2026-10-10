@@ -69,8 +69,11 @@ export function ReviewTable({ rows }: { rows: ReviewRow[] }) {
               <tr key={r.enrollmentNo + r.version} className="transition-colors hover:bg-surface-muted/50">
                 <Td className="font-mono text-ink-muted">{r.enrollmentNo}</Td>
                 <Td className="font-medium">{r.studentName}</Td>
-                <Td>
-                  {r.assignmentTitle} <span className="text-xs text-ink-subtle">· {r.version}</span>
+                <Td className="max-w-[260px]">
+                  <span className="block truncate" title={r.assignmentTitle}>
+                    {r.assignmentTitle}
+                  </span>
+                  <span className="text-xs text-ink-subtle">{r.version}</span>
                 </Td>
                 <Td>
                   <SubmissionBadge status={r.status} />

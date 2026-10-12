@@ -1,0 +1,24 @@
+# Render Blueprint: New → Blueprint → pick this repository. Render builds the Dockerfile and
+# attaches a persistent disk at /data for the SQLite database and uploads.
+services:
+  - type: web
+    name: assignai
+    runtime: docker
+    plan: starter # persistent disks need a paid instance type
+    healthCheckPath: /login
+    disk:
+      name: assignai-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      # Set ONE AI key in the Render dashboard (leave the other empty).
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SEED_FACULTY_EMAIL
+        sync: false
+      - key: SEED_FACULTY_NAME
+        value: Faculty Admin
+      - key: SEED_FACULTY_PASSWORD
+        sync: false

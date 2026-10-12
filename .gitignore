@@ -8,3 +8,7 @@ next-env.d.ts
 /storage/
 /prisma/*.db
 /prisma/*.db-journal
+/lib/generated/
+/.e2e/
+/test-results/
+/playwright-report/

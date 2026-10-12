@@ -84,6 +84,10 @@ export interface Submission {
   submittedAt: string;
   status: SubmissionStatus;
   files: string[];
+  /** Why the system flagged this submission for manual review. */
+  reviewReason?: string;
+  /** Files rejected during safe extraction (executables, nested archives, …). */
+  rejectedFiles?: string[];
   evaluation?: Evaluation;
 }
 

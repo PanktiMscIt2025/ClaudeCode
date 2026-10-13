@@ -72,7 +72,7 @@ export async function rerunEvaluationAction(submissionId: string): Promise<Actio
   const sub = await findOwnedSubmission(submissionId, user.id);
   if (!sub) return { ok: false, error: "Submission not found." };
   if (sub.evaluation?.status === "APPROVED") return { ok: false, error: "Approved marks can't be re-evaluated." };
-  if (!sub.storedPath) return { ok: false, error: "The original file is no longer stored." };
+  if (!sub.file) return { ok: false, error: "The original file is no longer stored." };
   await db.submission.update({ where: { id: sub.id }, data: { status: "QUEUED", reviewReason: null } });
   await enqueue("EVALUATE_SUBMISSION", { submissionId: sub.id });
   await audit(user.id, "EVALUATION_RERUN", `submission:${sub.id}`, {});

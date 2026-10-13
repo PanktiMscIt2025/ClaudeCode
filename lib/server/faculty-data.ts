@@ -50,6 +50,7 @@ export function findOwnedSubmission(submissionId: string, facultyId: string) {
     where: { id: submissionId, studentAssignment: { assignment: { course: { facultyId } } } },
     include: {
       evaluation: { include: { criteria: { orderBy: { position: "asc" } } } },
+      file: { select: { submissionId: true } },
       studentAssignment: {
         include: {
           student: { select: { name: true, loginId: true } },

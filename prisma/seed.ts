@@ -1,8 +1,14 @@
 // Creates the first faculty account from SEED_FACULTY_* env vars. Safe to run repeatedly.
-import { db } from "../lib/server/db";
 import { hashPassword } from "../lib/server/password";
 
+try {
+  process.loadEnvFile?.(".env"); // when run directly (`npx tsx prisma/seed.ts`); host env vars take precedence
+} catch {
+  // .env is optional
+}
+
 async function main() {
+  const { db } = await import("../lib/server/db"); // after .env is loaded: the client reads DATABASE_URL on import
   const email = (process.env.SEED_FACULTY_EMAIL ?? "faculty@college.edu").trim().toLowerCase();
   const name = process.env.SEED_FACULTY_NAME ?? "Faculty Admin";
   const password = process.env.SEED_FACULTY_PASSWORD ?? "ChangeMe-2026";
@@ -23,11 +29,10 @@ async function main() {
     },
   });
   console.log(`Created faculty account ${email}.`);
+  await db.$disconnect();
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(() => db.$disconnect());
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

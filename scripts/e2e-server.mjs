@@ -1,20 +1,25 @@
 // Starts an isolated AssignAI server for the Playwright acceptance test:
-// fresh SQLite DB + storage under .e2e/, seeded faculty account, optional mock AI API
+// a wiped PostgreSQL test database (E2E_DATABASE_URL), seeded faculty account, optional mock AI API
 // (E2E_AI=mock for Claude, E2E_AI=mock-gemini for Gemini).
 import { execSync, spawn } from "node:child_process";
-import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
+import pg from "pg";
 
 const root = path.resolve(import.meta.dirname, "..");
-const dir = path.join(root, ".e2e");
-rmSync(dir, { recursive: true, force: true });
-mkdirSync(dir, { recursive: true });
+const databaseUrl = process.env.E2E_DATABASE_URL ?? "postgresql://assignai:assignai@localhost:5432/assignai_e2e";
+
+// Start from an empty schema every run. Refuse anything that doesn't look like a test database.
+if (!/e2e|test/i.test(new URL(databaseUrl).pathname)) throw new Error("E2E_DATABASE_URL must name a test database (containing 'e2e' or 'test').");
+const client = new pg.Client({ connectionString: databaseUrl });
+await client.connect();
+await client.query("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;");
+await client.end();
 
 const port = process.env.E2E_PORT ?? "3100";
 const env = {
   ...process.env,
-  DATABASE_URL: `file:${path.join(dir, "test.db")}`,
-  STORAGE_DIR: path.join(dir, "storage"),
+  DATABASE_URL: databaseUrl,
+  DIRECT_URL: databaseUrl,
   SEED_FACULTY_EMAIL: "faculty@college.edu",
   SEED_FACULTY_NAME: "Dr. Test Faculty",
   SEED_FACULTY_PASSWORD: "ChangeMe-2026",

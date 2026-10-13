@@ -1,3 +1,14 @@
+---
+# Hugging Face Spaces settings (see DEPLOY.md); ignored elsewhere.
+title: AssignAI
+emoji: 📝
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 3000
+pinned: false
+---
+
 # AssignAI
 
 A lightweight AI-assisted assignment management web app for college faculty and students.
@@ -8,20 +19,21 @@ A lightweight AI-assisted assignment management web app for college faculty and 
 - Each ZIP is extracted safely and evaluated against the student's exact version. Marks out of 30 stay provisional until faculty approve them.
 - Faculty export a formatted marks workbook (.xlsx).
 
-One Next.js app runs on one server, with SQLite by default. There are no microservices or extra infrastructure. See [`PLAN.md`](PLAN.md) for the architecture.
+One Next.js app runs on one server, with all data in PostgreSQL (a free [Neon](https://neon.tech) database works). There are no microservices or extra infrastructure. See [`PLAN.md`](PLAN.md) for the architecture.
 
 ## Requirements
 
 - Node.js 20.9+ (developed on Node 22)
 - npm
+- A PostgreSQL database: either a free [Neon](https://neon.tech) database (nothing to install) or a local PostgreSQL server
 - An AI key for generation and evaluation: either an [Anthropic API key](https://console.anthropic.com/) or a [Google Gemini API key](https://aistudio.google.com/apikey). This is optional: without one the app uses a built-in offline generator and estimator, and labels everything it produces as offline.
 
 ## Setup
 
 ```bash
 npm install                 # also generates the Prisma client
-cp .env.example .env        # then edit .env (see Configuration)
-npm run db:setup            # create the SQLite database and the first faculty account
+cp .env.example .env        # then set DATABASE_URL in .env (see Configuration)
+npm run db:setup            # create the tables and the first faculty account
 npm run dev                 # http://localhost:3000
 ```
 
@@ -29,7 +41,7 @@ Sign in at `/login` (Faculty tab) with `SEED_FACULTY_EMAIL` / `SEED_FACULTY_PASS
 
 ### Production
 
-**To get a shareable link, see [`DEPLOY.md`](DEPLOY.md)** (Render, Railway, or any Docker host).
+**To get a free shareable link, see [`DEPLOY.md`](DEPLOY.md)** (Hugging Face Spaces + Neon, Render, or any Docker host).
 
 Without Docker:
 
@@ -55,29 +67,25 @@ Run a single instance. The login rate limiter and the background job worker are 
 | `npm run test:e2e:ai` | The same test against a local mock of the Claude API, which checks the request format and the AI code path |
 | `npm run test:e2e:gemini` | The same test against a local mock of the Gemini API |
 
-The acceptance test starts its own server on port 3100, with a throwaway database and storage in `.e2e/`. Stop any running `npm run dev` first.
+The acceptance test starts its own server on port 3100. It **wipes and reuses** a separate test database, `E2E_DATABASE_URL` (default `postgresql://assignai:assignai@localhost:5432/assignai_e2e`; the name must contain `e2e` or `test`). Stop any running `npm run dev` first.
 
 ## Configuration (`.env`)
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `DATABASE_URL` | `file:./prisma/dev.db` | SQLite file. See *PostgreSQL* below for concurrent deployments. |
+| `DATABASE_URL` | none (required) | PostgreSQL connection string, e.g. from Neon |
+| `DIRECT_URL` | derived | Direct (non-pooled) connection for migrations. Only needed for poolers other than Neon's. |
 | `ANTHROPIC_API_KEY` | empty | Use Anthropic Claude for AI. Server-side only, never sent to the browser. |
 | `ANTHROPIC_MODEL` | `claude-opus-5-5` | Claude model |
 | `GEMINI_API_KEY` | empty | Use Google Gemini for AI instead. Server-side only. |
 | `GEMINI_MODEL` | `gemini-flash-latest` | Gemini model (the default always points to the newest Flash model) |
 | `AI_PROVIDER` | automatic | `anthropic` or `gemini`, only needed if both keys are set (otherwise Claude is used) |
 | `SEED_FACULTY_EMAIL` / `_NAME` / `_PASSWORD` | see `.env.example` | First faculty account |
-| `STORAGE_DIR` | `./storage` | Private storage for uploaded ZIPs (outside `public/`) |
 | `MAX_ZIP_MB` / `MAX_EXCEL_MB` / `MAX_SYLLABUS_MB` | 20 / 5 / 10 | Upload limits |
-| `KEEP_SUBMISSION_FILES` | `false` | By default a ZIP is deleted once its marks are approved |
+| `KEEP_SUBMISSION_FILES` | `false` | Uploaded ZIPs are stored in the database and deleted once their marks are approved |
 | `COOKIE_SECURE` | `true` in production | Set to `false` only if you must serve over plain HTTP on a campus LAN |
 
 Additional faculty accounts can be added by re-running the seed with different `SEED_FACULTY_*` values.
-
-### PostgreSQL
-
-For many simultaneous users, change `provider = "sqlite"` to `"postgresql"` in `prisma/schema.prisma`, install `@prisma/adapter-pg`, swap the adapter in `lib/server/db.ts`, set `DATABASE_URL`, and run `npx prisma migrate dev` to create a PostgreSQL migration.
 
 ## How it works
 
@@ -109,7 +117,7 @@ Old `.xls` files must be re-saved as `.xlsx`. The only `.xls` reader available (
 - Authorization: checked server-side on every page, action, and route. Every course, assignment, and submission query is scoped to its owner.
 - Login rate limiting: 5 failures per account and IP, and 30 per IP, in 15 minutes. Uploads are rate-limited too.
 - Inputs are validated with zod. State-changing upload routes reject cross-origin requests.
-- Uploads are stored privately and downloaded only through authorized routes.
+- Uploads are stored in the database (never in a public folder) and downloaded only through authorized routes.
 - AI keys live only in server environment variables. No student names or IDs are sent to the AI. Prompts mark student work as data, so instructions inside a submission are ignored.
 
 ## Project layout

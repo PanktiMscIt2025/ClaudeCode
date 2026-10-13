@@ -2,7 +2,7 @@ import { db } from "./db";
 import { aiEnabled, aiEvaluate, AiError, type AiEvaluation } from "./ai";
 import { offlineEvaluate } from "./offline";
 import { parseJson } from "./json";
-import { deleteStored, safeStoredPath } from "./storage";
+import { withTempZip } from "./storage";
 import { extractSubmission, ZipRejected } from "./zip";
 import type { Question, RubricCriterion } from "@/lib/types";
 
@@ -31,12 +31,12 @@ export async function runEvaluation(submissionId: string) {
   const rubric = parseJson<RubricCriterion[]>(sa.rubric, []);
   const questions = parseJson<Question[]>(sa.questions, []);
   const modelSolution = parseJson<unknown>(sa.modelSolution, {});
-  const zipPath = sub.storedPath ? safeStoredPath(sub.storedPath) : null;
-  if (!zipPath) throw new Error("The uploaded file is missing from storage.");
+  const file = await db.submissionFile.findUnique({ where: { submissionId: sub.id } });
+  if (!file) throw new Error("The uploaded file is missing from storage.");
 
   let extracted;
   try {
-    extracted = await extractSubmission(zipPath);
+    extracted = await withTempZip(file.data, extractSubmission);
   } catch (e) {
     if (!(e instanceof ZipRejected)) throw e;
     await saveResult(sub.id, rubric, null, { files: [], rejected: [], text: "", reviewReason: e.message });
@@ -122,8 +122,5 @@ export async function markEvaluationFailed(submissionId: string, error: string) 
 /** Retention: the original ZIP is kept for faculty review and deleted once marks are approved. */
 export async function releaseSubmissionFile(submissionId: string) {
   if (process.env.KEEP_SUBMISSION_FILES === "true") return;
-  const sub = await db.submission.findUnique({ where: { id: submissionId } });
-  if (!sub?.storedPath) return;
-  await deleteStored(sub.storedPath);
-  await db.submission.update({ where: { id: submissionId }, data: { storedPath: null } });
+  await db.submissionFile.deleteMany({ where: { submissionId } });
 }

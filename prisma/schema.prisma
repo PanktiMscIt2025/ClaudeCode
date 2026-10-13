@@ -1,4 +1,4 @@
-// AssignAI data model. SQLite by default; switch `provider` to "postgresql" for concurrent multi-user deployments.
+// AssignAI data model (PostgreSQL, e.g. a free Neon database).
 // JSON-shaped columns are stored as TEXT and validated in lib/ so the schema stays portable.
 
 generator client {
@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
@@ -128,7 +128,6 @@ model Submission {
   studentAssignmentId String
   fileName            String
   sizeBytes           Int
-  storedPath          String? // private storage path; cleared once evaluation finishes unless retention is enabled
   files               String            @default("[]") // JSON string[]: accepted files inside the ZIP
   rejectedFiles       String            @default("[]") // JSON string[]: blocked entries
   extractedText       String? // bounded text gathered for evaluation
@@ -137,8 +136,17 @@ model Submission {
   submittedAt         DateTime          @default(now())
   studentAssignment   StudentAssignment @relation(fields: [studentAssignmentId], references: [id], onDelete: Cascade)
   evaluation          Evaluation?
+  file                SubmissionFile?
 
   @@index([studentAssignmentId])
+}
+
+/// The uploaded ZIP, kept in the database (so it survives restarts on hosts without a disk).
+/// Deleted once marks are approved unless retention is enabled.
+model SubmissionFile {
+  submissionId String     @id
+  data         Bytes
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 }
 
 model Evaluation {

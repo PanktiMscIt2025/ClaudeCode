@@ -9,7 +9,7 @@ One Next.js (TypeScript) app runs on one server. There are no microservices.
 |---|---|---|
 | App (UI + API) | Next.js 16 App Router, TypeScript | Server actions for forms; route handlers for uploads and downloads |
 | UI | Tailwind CSS 4, in-house components (`components/ui`) | Semantic color tokens, light/dark, self-hosted fonts |
-| DB | Prisma 7 + SQLite (better-sqlite3 adapter) | Switch the provider to PostgreSQL for concurrent deployments |
+| DB | Prisma 7 + PostgreSQL (`@prisma/adapter-pg`) | A free Neon database works; uploaded ZIPs are stored in it too, so the app container is stateless |
 | AI | Anthropic Claude (`@anthropic-ai/sdk`) or Google Gemini (`@google/genai`), server-only | Same Zod schemas for both; structured JSON output, validated; offline fallback without a key |
 | Excel | ExcelJS | Import roster; export credentials, error report, marks |
 | Files | `unpdf` (PDF), `mammoth` (DOCX), `yauzl` (ZIP, with limits) | |
@@ -29,7 +29,7 @@ One Next.js (TypeScript) app runs on one server. There are no microservices.
 
 ## 3. Data model
 
-`User`, `Session`, `Course`, `CourseStudent`, `Syllabus`, `Assignment` (with shared rubric and blueprint), `StudentAssignment` (the exact version issued to each student), `Submission`, `Evaluation`, `EvaluationCriterion`, `AuditLog`, and `Job`. JSON-shaped fields are stored as TEXT and validated in `lib/server` so the schema stays portable between SQLite and PostgreSQL.
+`User`, `Session`, `Course`, `CourseStudent`, `Syllabus`, `Assignment` (with shared rubric and blueprint), `StudentAssignment` (the exact version issued to each student), `Submission`, `SubmissionFile` (the uploaded ZIP, deleted after approval), `Evaluation`, `EvaluationCriterion`, `AuditLog`, and `Job`. JSON-shaped fields are stored as TEXT and validated in `lib/server` so the schema stays simple and portable.
 
 ## 4. Known limitations
 

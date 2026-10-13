@@ -29,7 +29,7 @@ export default async function SubmissionReviewPage({ params }: { params: Promise
           rejected: parseJson<string[]>(sub.rejectedFiles, []),
           extractedText: sub.extractedText ?? "",
           reviewReason: sub.reviewReason,
-          hasFile: Boolean(sub.storedPath),
+          hasFile: Boolean(sub.file),
           isLatest: sa.submissions[0]?.id === sub.id,
           history: sa.submissions.map((s) => ({ id: s.id, submittedAt: s.submittedAt.toISOString() })),
         }}

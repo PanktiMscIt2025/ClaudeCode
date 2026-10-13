@@ -1,9 +1,8 @@
-import { rm } from "node:fs/promises";
 import { db } from "@/lib/server/db";
 import { jsonError, mb, routeUser, tooLarge } from "@/lib/server/http";
 import { enqueue } from "@/lib/server/jobs";
 import { checkLimit, recordHit } from "@/lib/server/rate-limit";
-import { saveSubmissionZip } from "@/lib/server/storage";
+import { withTempZip } from "@/lib/server/storage";
 import { scanZip, ZipRejected } from "@/lib/server/zip";
 
 export const maxDuration = 60;
@@ -39,17 +38,14 @@ export async function POST(req: Request) {
   const magic = String.fromCharCode(...data.slice(0, 4));
   if (magic !== "PK\u0003\u0004" && magic !== "PK\u0005\u0006") return jsonError(400, "This file is not a valid ZIP archive.");
 
-  const stored = await saveSubmissionZip(data);
   let scan;
   try {
-    scan = await scanZip(stored);
+    scan = await withTempZip(data, scanZip);
   } catch (e) {
-    await rm(stored, { force: true });
     if (e instanceof ZipRejected) return jsonError(400, e.message);
     throw e;
   }
   if (!scan.accepted.length && !scan.images.length) {
-    await rm(stored, { force: true });
     return jsonError(400, scan.rejected.length ? `None of the files can be evaluated: ${scan.rejected.slice(0, 3).join("; ")}` : "The ZIP is empty.");
   }
 
@@ -59,7 +55,7 @@ export async function POST(req: Request) {
       studentAssignmentId: sa.id,
       fileName: file.name.replace(/[^\w.\- ()]/g, "_").slice(0, 120),
       sizeBytes: file.size,
-      storedPath: stored,
+      file: { create: { data } },
       files: JSON.stringify([...scan.accepted, ...scan.images]),
       rejectedFiles: JSON.stringify(scan.rejected),
     },

@@ -1,17 +1,17 @@
-# Render Blueprint: New → Blueprint → pick this repository. Render builds the Dockerfile and
-# attaches a persistent disk at /data for the SQLite database and uploads.
+# Render Blueprint: New → Blueprint → pick this repository. Render builds the Dockerfile.
+# All data lives in PostgreSQL (e.g. a free Neon database), so the free instance type works and nothing is lost
+# when it sleeps or redeploys.
 services:
   - type: web
     name: assignai
     runtime: docker
-    plan: starter # persistent disks need a paid instance type
+    plan: free
     healthCheckPath: /login
-    disk:
-      name: assignai-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
-      # Set ONE AI key in the Render dashboard (leave the other empty).
+      # PostgreSQL connection string, e.g. from https://neon.tech
+      - key: DATABASE_URL
+        sync: false
+      # Set ONE AI key in the Render dashboard (or neither, for offline mode).
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: GEMINI_API_KEY

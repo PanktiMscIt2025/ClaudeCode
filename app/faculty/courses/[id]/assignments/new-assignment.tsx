@@ -41,6 +41,15 @@ export function NewAssignment({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const allTopics = Array.from(new Set([...topics, ...picked]));
+  // Say why "Generate drafts" is disabled instead of leaving a silent grey button.
+  const blocker =
+    studentCount === 0
+      ? "Import students first."
+      : title.trim().length < 3
+        ? "Enter a title."
+        : !picked.length
+          ? "Select at least one topic: click it so it turns purple with a ✓."
+          : null;
 
   function toggle(t: string) {
     setPicked((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
@@ -166,8 +175,9 @@ export function NewAssignment({
             Creates <span className="font-semibold text-ink">{studentCount} unique versions</span> (one per student) that share one rubric, so marking
             stays comparable. Nothing is visible to students until you publish.
             {!aiEnabled && " No AI key is configured, so the built-in template generator will be used."}
+            {blocker && <span className="mt-1 block font-medium text-sun">{blocker}</span>}
           </p>
-          <Button size="lg" onClick={submit} disabled={pending || !picked.length || title.trim().length < 3 || studentCount === 0}>
+          <Button size="lg" onClick={submit} disabled={pending || Boolean(blocker)}>
             <Sparkle className="h-5 w-5" /> {pending ? "Starting…" : "Generate drafts"}
           </Button>
         </div>
